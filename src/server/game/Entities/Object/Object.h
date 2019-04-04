@@ -117,8 +117,8 @@ class Transport;
 class StaticTransport;
 class MotionTransport;
 
-typedef UNORDERED_MAP<Player*, UpdateData> UpdateDataMapType;
-typedef UNORDERED_SET<uint32> UpdatePlayerSet;
+typedef std::unordered_map<Player*, UpdateData> UpdateDataMapType;
+typedef std::unordered_set<uint32> UpdatePlayerSet;
 
 class Object
 {
@@ -865,8 +865,8 @@ class WorldObject : public Object, public WorldLocation
         {
             return obj && IsInMap(obj) && InSamePhase(obj) && _IsWithinDist(obj, dist2compare, is3D);
         }
-        bool IsWithinLOS(float x, float y, float z) const;
-        bool IsWithinLOSInMap(const WorldObject* obj) const;
+        bool IsWithinLOS(float x, float y, float z, LineOfSightChecks checks = LINEOFSIGHT_ALL_CHECKS) const;
+        bool IsWithinLOSInMap(WorldObject const* obj, LineOfSightChecks checks = LINEOFSIGHT_ALL_CHECKS) const;
         Position GetHitSpherePointFor(Position const& dest) const;
         void GetHitSpherePointFor(Position const& dest, float& x, float& y, float& z) const;
         bool GetDistanceOrder(WorldObject const* obj1, WorldObject const* obj2, bool is3D = true) const;
@@ -920,6 +920,7 @@ class WorldObject : public Object, public WorldLocation
 
         // Low Level Packets
         void SendPlaySound(uint32 Sound, bool OnlySelf);
+        void SendPlayMusic(uint32 Music, bool OnlySelf);
 
         virtual void SetMap(Map* map);
         virtual void ResetMap();
