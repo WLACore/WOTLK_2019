@@ -19,12 +19,7 @@
 #include "ScriptMgr.h"
 #include <unordered_map>
 
-struct BGSpamProtectionS
-{
-    uint32 last_queue = 0; // CHAT DISABLED BY DEFAULT
-};
-
-std::unordered_map<uint32, BGSpamProtectionS> BGSpamProtection;
+std::unordered_map<uint64, uint32> BGSpamProtection;
 
 /*********************************************************/
 /***            BATTLEGROUND QUEUE SYSTEM              ***/
@@ -265,7 +260,7 @@ void BattlegroundQueue::RemovePlayer(uint64 guid, bool sentToBg, uint32 playerQu
     QueuedPlayersMap::iterator itr = m_QueuedPlayers.find(guid);
     if (itr == m_QueuedPlayers.end())
     {
-        ASSERT(false);
+        ABORT();
         return;
     }
 
@@ -286,7 +281,7 @@ void BattlegroundQueue::RemovePlayer(uint64 guid, bool sentToBg, uint32 playerQu
     //player can't be in queue without group, but just in case
     if (group_itr == m_QueuedGroups[_bracketId][_groupType].end())
     {
-        ASSERT(false);
+        ABORT();
         return;
     }
 
@@ -400,8 +395,25 @@ void BattlegroundQueue::FillPlayersToBG(Battleground* bg, const int32 aliFree, c
     int32 aliDiff = aliFree - int32(m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount());
     int32 hordeDiff = hordeFree - int32(m_SelectionPools[TEAM_HORDE].GetPlayerCount());
 
-    // if free space differs too much, ballance
-    while (abs(aliDiff - hordeDiff) > 1 && (m_SelectionPools[TEAM_HORDE].GetPlayerCount() > 0 || m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() > 0))
+    int32 invType = sWorld->getIntConfig(CONFIG_BATTLEGROUND_INVITATION_TYPE);
+    int32 invDiff = 0;
+
+    // check balance configuration and set the max difference between teams
+    switch (invType)
+    {
+    case BG_QUEUE_INVITATION_TYPE_NO_BALANCE:
+        return;
+    case BG_QUEUE_INVITATION_TYPE_BALANCED:
+        invDiff = 1;
+        break;
+    case BG_QUEUE_INVITATION_TYPE_EVEN:
+        break;
+    default:
+        return;
+    }
+
+    // balance the teams based on the difference allowed
+    while (abs(aliDiff - hordeDiff) > invDiff && (m_SelectionPools[TEAM_HORDE].GetPlayerCount() > 0 || m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() > 0))
     {
         // if results in more alliance players than horde:
         if (aliDiff < hordeDiff)
@@ -427,8 +439,8 @@ void BattlegroundQueue::FillPlayersToBG(Battleground* bg, const int32 aliFree, c
         }
 
         // recalculate free space after adding
-        aliDiff = aliFree - int32(m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount());
-        hordeDiff = hordeFree - int32(m_SelectionPools[TEAM_HORDE].GetPlayerCount());
+        aliDiff = aliFree - static_cast<int32>(m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount());
+        hordeDiff = hordeFree - static_cast<int32>(m_SelectionPools[TEAM_HORDE].GetPlayerCount());
     }
 }
 
@@ -466,8 +478,25 @@ void BattlegroundQueue::FillPlayersToBGWithSpecific(Battleground* bg, const int3
     int32 aliDiff = aliFree - int32(m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount());
     int32 hordeDiff = hordeFree - int32(m_SelectionPools[TEAM_HORDE].GetPlayerCount());
 
+    int32 invType = sWorld->getIntConfig(CONFIG_BATTLEGROUND_INVITATION_TYPE);
+    int32 invDiff = 0;
+
+    // check balance configuration and set the max difference between teams
+    switch (invType)
+    {
+    case BG_QUEUE_INVITATION_TYPE_NO_BALANCE:
+        return;
+    case BG_QUEUE_INVITATION_TYPE_BALANCED:
+        invDiff = 1;
+        break;
+    case BG_QUEUE_INVITATION_TYPE_EVEN:
+        break;
+    default:
+        return;
+    }
+
     // if free space differs too much, ballance
-    while (abs(aliDiff - hordeDiff) > 1 && (m_SelectionPools[TEAM_HORDE].GetPlayerCount() > 0 || m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() > 0))
+    while (abs(aliDiff - hordeDiff) > invDiff && (m_SelectionPools[TEAM_HORDE].GetPlayerCount() > 0 || m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() > 0))
     {
         // if results in more alliance players than horde:
         if (aliDiff < hordeDiff)
@@ -479,9 +508,8 @@ void BattlegroundQueue::FillPlayersToBGWithSpecific(Battleground* bg, const int3
             // kick alliance, returns true if kicked more than needed, so then try to fill up
             if (m_SelectionPools[TEAM_ALLIANCE].KickGroup(hordeDiff - aliDiff))
                 for (; Ali_itr != m_QueuedBoth[TEAM_ALLIANCE].end() && m_SelectionPools[TEAM_ALLIANCE].AddGroup((*Ali_itr), aliFree >= hordeDiff ? aliFree - hordeDiff : 0); ++Ali_itr);
-        }
-        // if results in more horde players than alliance:
-        else
+        }            
+        else // if results in more horde players than alliance:
         {
             // no more horde in pool, invite whatever we can from alliance
             if (!m_SelectionPools[TEAM_HORDE].GetPlayerCount())
@@ -493,8 +521,8 @@ void BattlegroundQueue::FillPlayersToBGWithSpecific(Battleground* bg, const int3
         }
 
         // recalculate free space after adding
-        aliDiff = aliFree - int32(m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount());
-        hordeDiff = hordeFree - int32(m_SelectionPools[TEAM_HORDE].GetPlayerCount());
+        aliDiff = aliFree - static_cast<int32>(m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount());
+        hordeDiff = hordeFree - static_cast<int32>(m_SelectionPools[TEAM_HORDE].GetPlayerCount());
     }
 }
 
@@ -584,9 +612,10 @@ bool BattlegroundQueue::CheckNormalMatch(Battleground * bgTemplate, Battleground
         if (sBattlegroundMgr->isTesting() && bgTemplate->isBattleground() && (m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() || m_SelectionPools[TEAM_HORDE].GetPlayerCount()))
             return true;
 
-        return m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() >= std::min<uint32>(specificTemplate->GetMinPlayersPerTeam() * Coef, 15) && m_SelectionPools[TEAM_HORDE].GetPlayerCount() >= std::min<uint32>(specificTemplate->GetMinPlayersPerTeam() * Coef, 15);
-    }    
-    else // if this is not random bg queue - use players only from this queue
+        return (m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() + m_SelectionPools[TEAM_HORDE].GetPlayerCount()) >= 2 * (std::min<uint32>(specificTemplate->GetMinPlayersPerTeam(), 15));
+    }
+    // if this is not random bg queue - use players only from this queue
+    else
     {
         FillPlayersToBG(bgTemplate, maxPlayers, maxPlayers, bracket_id);
 
@@ -594,7 +623,20 @@ bool BattlegroundQueue::CheckNormalMatch(Battleground * bgTemplate, Battleground
         if (sBattlegroundMgr->isTesting() && bgTemplate->isBattleground() && (m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() || m_SelectionPools[TEAM_HORDE].GetPlayerCount()))
             return true;
 
-        return m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() >= minPlayers && m_SelectionPools[TEAM_HORDE].GetPlayerCount() >= minPlayers;
+        switch (sWorld->getIntConfig(CONFIG_BATTLEGROUND_INVITATION_TYPE))
+        {
+        case BG_QUEUE_INVITATION_TYPE_NO_BALANCE: // in this case, as soon as both teams have > mincount, start
+            return m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() >= minPlayers && m_SelectionPools[TEAM_HORDE].GetPlayerCount() >= minPlayers;
+
+        case BG_QUEUE_INVITATION_TYPE_BALANCED: // check difference between selection pools - if = 1 or less start.
+            return abs(static_cast<int32>(m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount()) - static_cast<int32>(m_SelectionPools[TEAM_HORDE].GetPlayerCount())) <= 1 && m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() >= minPlayers && m_SelectionPools[TEAM_HORDE].GetPlayerCount() >= minPlayers;
+
+        case BG_QUEUE_INVITATION_TYPE_EVEN: // if both counts are same then it's an even match
+            return (m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() == m_SelectionPools[TEAM_HORDE].GetPlayerCount()) && m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() >= minPlayers && m_SelectionPools[TEAM_HORDE].GetPlayerCount() >= minPlayers;
+
+        default: // same as unbalanced (in case wrong setting is entered...)
+            return m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() >= minPlayers && m_SelectionPools[TEAM_HORDE].GetPlayerCount() >= minPlayers;
+        }
     }
 }
 
@@ -984,17 +1026,15 @@ void BattlegroundQueue::SendMessageQueue(Player* leader, Battleground* bg, PvPDi
     }
     else if (!bg->isArena()) // Show queue status to server (when joining battleground queue)
     {
-        if (BGSpamProtection[leader->GetGUID()].last_queue == 0)
+        auto searchGUID = BGSpamProtection.find(leader->GetGUID());
+
+        if (searchGUID == BGSpamProtection.end())
+            BGSpamProtection[leader->GetGUID()] = 0; // Leader GUID not found, initialize with 0
+
+        if (sWorld->GetGameTime() - BGSpamProtection[leader->GetGUID()] >= 30)
         {
-            BGSpamProtection[leader->GetGUID()].last_queue = sWorld->GetGameTime();
-            sWorld->SendWorldText(LANG_BG_QUEUE_ANNOUNCE_WORLD, bgName, q_min_level, q_max_level,
-                qAlliance + qHorde, MaxPlayers);
-        }
-        else if (sWorld->GetGameTime() - BGSpamProtection[leader->GetGUID()].last_queue >= 30)
-        {
-            BGSpamProtection[leader->GetGUID()].last_queue = 0;
-            sWorld->SendWorldText(LANG_BG_QUEUE_ANNOUNCE_WORLD, bgName, q_min_level, q_max_level,
-                qAlliance + qHorde, MaxPlayers);
+            BGSpamProtection[leader->GetGUID()] = sWorld->GetGameTime();
+            sWorld->SendWorldText(LANG_BG_QUEUE_ANNOUNCE_WORLD, bgName, q_min_level, q_max_level, qAlliance + qHorde, MaxPlayers);
         }
     }
 }
