@@ -384,7 +384,7 @@ Aura* Aura::Create(SpellInfo const* spellproto, uint8 effMask, WorldObject* owne
             aura = new DynObjAura(spellproto, effMask, owner, caster, baseAmount, castItem, casterGUID);
             break;
         default:
-            ABORT();
+            ASSERT(false);
             return NULL;
     }
     // aura can be removed in Unit::_AddAura call
@@ -498,7 +498,7 @@ void Aura::_UnapplyForTarget(Unit* target, Unit* caster, AuraApplication * auraA
     {
         sLog->outError("Aura::_UnapplyForTarget, target:%u, caster:%u, spell:%u was not found in owners application map!",
         target->GetGUIDLow(), caster ? caster->GetGUIDLow() : 0, auraApp->GetBase()->GetSpellInfo()->Id);
-        ABORT();
+        ASSERT(false);
     }
 
     // aura has to be already applied
@@ -594,7 +594,7 @@ void Aura::UpdateTargetMap(Unit* caster, bool apply)
             else
             {
                 // ok, we have one unit twice in target map (impossible, but...)
-                ABORT();
+                ASSERT(false);
             }
         }
 
@@ -662,7 +662,7 @@ void Aura::UpdateTargetMap(Unit* caster, bool apply)
                 sLog->outCrash("Aura %u: Owner %s (map %u) is not in the same map as target %s (map %u).", GetSpellInfo()->Id,
                     GetOwner()->GetName().c_str(), GetOwner()->IsInWorld() ? GetOwner()->GetMap()->GetId() : uint32(-1),
                     itr->first->GetName().c_str(), itr->first->IsInWorld() ? itr->first->GetMap()->GetId() : uint32(-1));
-                ABORT();
+                ASSERT(false);
             }
             itr->first->_CreateAuraApplication(this, itr->second);
             ++itr;
@@ -715,7 +715,7 @@ void Aura::UpdateOwner(uint32 diff, WorldObject* owner)
 {
     if (owner != m_owner)
     {
-        ABORT();
+        ASSERT(false);
     }
 
     Unit* caster = GetCaster();

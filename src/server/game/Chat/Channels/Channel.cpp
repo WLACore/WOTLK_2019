@@ -17,7 +17,6 @@ Channel::Channel(std::string const& name, uint32 channelId, uint32 channelDBId, 
     _announce(announce),
     _ownership(ownership),
     _IsSaved(false),
-    _isOwnerGM(false),
     _flags(0),
     _channelId(channelId),
     _channelDBId(channelDBId),
@@ -213,8 +212,6 @@ void Channel::JoinChannel(Player* player, std::string const& pass)
 
     JoinNotify(player);
 
-    playersStore[guid].SetOwnerGM(AccountMgr::IsGMAccount(player->GetSession()->GetSecurity()));
-
     // Custom channel handling
     if (!IsConstant())
     {
@@ -229,12 +226,8 @@ void Channel::JoinChannel(Player* player, std::string const& pass)
         }
 
         // If the channel has no owner yet and ownership is allowed, set the new owner.
-        // If the channel owner is a GM and the config SilentGMJoinChannel is enabled, set the new owner
-        if ((!_ownerGUID || (_isOwnerGM && sWorld->getBoolConfig(CONFIG_SILENTLY_GM_JOIN_TO_CHANNEL))) && _ownership)
-        {
-            _isOwnerGM = playersStore[guid].IsOwnerGM();
+        if (!_ownerGUID && _ownership)
             SetOwner(guid, false);
-        }
 
         if (_channelRights.flags & CHANNEL_RIGHT_CANT_SPEAK)
             playersStore[guid].SetMuted(true);
@@ -292,15 +285,10 @@ void Channel::LeaveChannel(Player* player, bool send)
                 for (Channel::PlayerContainer::const_iterator itr = playersStore.begin(); itr != playersStore.end(); ++itr)
                 {
                     newowner = itr->second.player;
-                    if (AccountMgr::IsGMAccount(itr->second.plrPtr->GetSession()->GetSecurity()))
-                        _isOwnerGM = true;
-                    else
-                        _isOwnerGM = false;
                     if (!itr->second.plrPtr->GetSession()->GetSecurity())
                         break;
                 }
                 SetOwner(newowner);
-                // if the new owner is invisible gm, set flag to automatically choose a new owner
             }
             else
                 SetOwner(0);
@@ -923,26 +911,13 @@ void Channel::SetOwner(uint64 guid, bool exclaim)
         uint8 oldFlag = pinfo.flags;
         pinfo.SetOwner(true);
 
-        bool notify = true;
-        Player* player = ObjectAccessor::FindPlayer(_ownerGUID);
-
-        if (player)
-        {
-            uint32 sec = player->GetSession()->GetSecurity();
-            notify = !(AccountMgr::IsGMAccount(sec) && sWorld->getBoolConfig(CONFIG_SILENTLY_GM_JOIN_TO_CHANNEL));
-        }
-
         WorldPacket data;
-
-        if (notify)
-        {
-            MakeModeChange(&data, _ownerGUID, oldFlag);
-            SendToAll(&data);
-        }
+        MakeModeChange(&data, _ownerGUID, oldFlag);
+        SendToAll(&data);
 
         FlagsNotify(pinfo.plrPtr);
 
-        if (exclaim && notify)
+        if (exclaim)
         {
             MakeOwnerChanged(&data, _ownerGUID);
             SendToAll(&data);

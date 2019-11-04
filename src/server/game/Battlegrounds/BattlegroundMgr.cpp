@@ -36,8 +36,6 @@
 #include "BattlegroundQueue.h"
 #include "GameGraveyard.h"
 #include <unordered_map>
-#include <random>
-
 #ifdef ELUNA
 #include "LuaEngine.h"
 #endif
@@ -1000,10 +998,8 @@ void RandomBattlegroundSystem::Update(uint32 diff)
             small.push_back(BATTLEGROUND_AB);
             small.push_back(BATTLEGROUND_SA);
 
-            auto rng = std::default_random_engine{};
-
-            std::shuffle(big.begin(), big.end(), rng);
-            std::shuffle(small.begin(), small.end(), rng);
+            std::random_shuffle(big.begin(), big.end());
+            std::random_shuffle(small.begin(), small.end());
 
             m_BgOrder.push_back(small.back()); small.pop_back();
             m_BgOrder.push_back(small.back()); small.pop_back();
@@ -1024,7 +1020,7 @@ void RandomBattlegroundSystem::Update(uint32 diff)
             case BATTLEGROUND_EY: m_SwitchTimer = 40*IN_MILLISECONDS; break; // max 15 per team
             case BATTLEGROUND_AB: m_SwitchTimer = 40*IN_MILLISECONDS; break; // max 15 per team
             case BATTLEGROUND_SA: m_SwitchTimer = 40*IN_MILLISECONDS; break; // max 15 per team
-            default: ABORT(); break;
+            default: ASSERT(false); break;
         }
     }
     else

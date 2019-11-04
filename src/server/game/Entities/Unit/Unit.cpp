@@ -4052,7 +4052,7 @@ void Unit::_UnapplyAura(AuraApplication * aurApp, AuraRemoveMode removeMode)
         else
             ++iter;
     }
-    ABORT();
+    ASSERT(false);
 }
 
 void Unit::_RemoveNoStackAurasDueToAura(Aura* aura)
@@ -4145,7 +4145,7 @@ void Unit::RemoveOwnedAura(Aura* aura, AuraRemoveMode removeMode)
         }
     }
 
-    ABORT();
+    ASSERT(false);
 }
 
 Aura* Unit::GetOwnedAura(uint32 spellId, uint64 casterGUID, uint64 itemCasterGUID, uint8 reqEffMask, Aura* except) const
@@ -9895,7 +9895,7 @@ void Unit::SetMinion(Minion *minion, bool apply)
                     {
                         OutDebugInfo();
                         (*itr)->OutDebugInfo();
-                        ABORT();
+                        ASSERT(false);
                     }
                     ASSERT((*itr)->GetTypeId() == TYPEID_UNIT);
 
@@ -14377,7 +14377,7 @@ void Unit::RemoveFromWorld()
         if (GetCharmerGUID())
         {
             sLog->outCrash("Unit %u has charmer guid when removed from world", GetEntry());
-            ABORT();
+            ASSERT(false);
         }
 
         if (Unit* owner = GetOwner())
@@ -14387,7 +14387,7 @@ void Unit::RemoveFromWorld()
                 if (HasUnitTypeMask(UNIT_MASK_MINION|UNIT_MASK_GUARDIAN))
                     owner->SetMinion((Minion*)this, false);
                 sLog->outString("Unit %u is in controlled list of %u when removed from world", GetEntry(), owner->GetEntry());
-                //ABORT();
+                //ASSERT(false);
             }
         }
 
@@ -17151,7 +17151,7 @@ void Unit::RemoveCharmedBy(Unit* charmer)
     {
 //        sLog->outCrash("Unit::RemoveCharmedBy: this: " UI64FMTD " true charmer: " UI64FMTD " false charmer: " UI64FMTD,
 //            GetGUID(), GetCharmerGUID(), charmer->GetGUID());
-//        ABORT();
+//        ASSERT(false);
         return;
     }
 
@@ -18260,7 +18260,7 @@ void Unit::ChangeSeat(int8 seatId, bool next)
 
     m_vehicle->RemovePassenger(this);
     if (!m_vehicle->AddPassenger(this, seatId))
-        ABORT();
+        ASSERT(false);
 }
 
 void Unit::ExitVehicle(Position const* /*exitPosition*/)
@@ -18482,13 +18482,6 @@ void Unit::NearTeleportTo(float x, float y, float z, float orientation, bool cas
         UpdateObjectVisibility();
         GetMotionMaster()->ReinitializeMovement();
     }
-}
-
-void Unit::SendTameFailure(uint8 result)
-{
-    WorldPacket data(SMSG_PET_TAME_FAILURE, 1);
-    data << uint8(result);
-    ToPlayer()->SendDirectMessage(&data);
 }
 
 void Unit::SendTeleportPacket(Position& pos)
@@ -19317,13 +19310,8 @@ void Unit::BuildValuesUpdate(uint8 updateType, ByteBuffer* data, Player* target)
                 uint32 appendValue = m_uint32Values[UNIT_NPC_FLAGS];
 
                 if (creature)
-                {
-                    if (sWorld->getIntConfig(CONFIG_INSTANT_TAXI) == 2 && appendValue & UNIT_NPC_FLAG_FLIGHTMASTER)
-                        appendValue |= UNIT_NPC_FLAG_GOSSIP; // flight masters need NPC gossip flag to show instant flight toggle option
-
                     if (!target->CanSeeSpellClickOn(creature))
                         appendValue &= ~UNIT_NPC_FLAG_SPELLCLICK;
-                }
 
                 fieldBuffer << uint32(appendValue);
             }

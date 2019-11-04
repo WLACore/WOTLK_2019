@@ -63,8 +63,6 @@ target_include_directories(g3dlib
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 target_link_libraries(g3dlib
-  PRIVATE
-    acore-dependency-interface
   PUBLIC
     zlib
     threads)

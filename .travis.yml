@@ -1,5 +1,6 @@
 sudo: required
-dist: bionic # (18.04)
+dist: xenial # (16.04)
+# bionic (18.04) is not yet available in travis
 
 language: cpp
 
@@ -11,7 +12,6 @@ addons:
 
 services:
   - mysql
-  - docker
 
 git:
   depth: 10
@@ -74,11 +74,3 @@ jobs:
         - source ./apps/ci/ci-install-modules.sh
       script:
         - source ./apps/ci/ci-compile.sh
-
-    - stage: run
-      env: TRAVIS_BUILD_ID="3"
-      script:
-        - ./apps/ci/docker/ci-docker-config.sh
-        - ./bin/acore-docker-generate-etc
-        - ./bin/acore-docker-build-no-scripts
-        - docker-compose up -d ac-database

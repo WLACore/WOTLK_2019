@@ -47,10 +47,6 @@ else()
     PUBLIC
       ${CMAKE_CURRENT_SOURCE_DIR})
 
-  target_link_libraries(zlib
-    PRIVATE
-      acore-dependency-interface)
-
   set_target_properties(zlib
       PROPERTIES
         FOLDER

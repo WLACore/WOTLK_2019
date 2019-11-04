@@ -48,13 +48,6 @@ class spell_item_massive_seaforium_charge : public SpellScriptLoader
         }
 };
 
-enum TitaniumSealOfDalaran
-{
-    TITANIUM_SEAL_OF_DALARAN_BROADCAST_TEXT_ID_FLIP      = 32638,
-    TITANIUM_SEAL_OF_DALARAN_BROADCAST_TEXT_ID_HEADS_UP  = 32663,
-    TITANIUM_SEAL_OF_DALARAN_BROADCAST_TEXT_ID_FACE_DOWN = 32664
-};
-
 class spell_item_titanium_seal_of_dalaran : public SpellScriptLoader
 {
     public:
@@ -71,19 +64,12 @@ class spell_item_titanium_seal_of_dalaran : public SpellScriptLoader
                 Unit* caster = GetCaster();
                 if (Player* player = caster->ToPlayer())
                 {
-                    LocaleConstant loc_idx = player->GetSession()->GetSessionDbLocaleIndex();
-                    if (BroadcastText const* bct = sObjectMgr->GetBroadcastText(TITANIUM_SEAL_OF_DALARAN_BROADCAST_TEXT_ID_FLIP))
-                        player->TextEmote(bct->GetText(loc_idx, player->getGender()));
+                    std::string name = player->GetName();
+                    player->TextEmote("casually flips his Titanium Seal of Dalaran");
                     if (urand(0,1))
-                    {
-                        if (BroadcastText const* bct = sObjectMgr->GetBroadcastText(TITANIUM_SEAL_OF_DALARAN_BROADCAST_TEXT_ID_FACE_DOWN))
-                            player->TextEmote(bct->GetText(loc_idx, player->getGender()));
-                    }
+                        player->TextEmote("finds the coin face down for tails!");
                     else
-                    {
-                        if (BroadcastText const* bct = sObjectMgr->GetBroadcastText(TITANIUM_SEAL_OF_DALARAN_BROADCAST_TEXT_ID_HEADS_UP))
-                            player->TextEmote(bct->GetText(loc_idx, player->getGender()));
-                    }
+                        player->TextEmote("catches the coin heads up!");
                 }
             }
 
@@ -748,27 +734,14 @@ public:
     }
 };
 
-enum Feast
-{
-    SPELL_GREAT_FEAST                        = 57301,
-    SPELL_FISH_FEAST                         = 57426,
-    SPELL_SMALL_FEAST                        = 58474,
-    SPELL_GIGANTIC_FEAST                     = 58465,
-
-    GREAT_FEAST_BROADCAST_TEXT_ID_PREPARE    = 31843,
-    FISH_FEAST_BROADCAST_TEXT_ID_PREPARE     = 31844,
-    SMALL_FEAST_BROADCAST_TEXT_ID_PREPARE    = 31845,
-    GIGANTIC_FEAST_BROADCAST_TEXT_ID_PREPARE = 31846
-};
-
-class spell_item_feast : public SpellScriptLoader
+class spell_item_fish_feast : public SpellScriptLoader
 {
     public:
-        spell_item_feast() : SpellScriptLoader("spell_item_feast") {}
+        spell_item_fish_feast() : SpellScriptLoader("spell_item_fish_feast") {}
 
-        class spell_item_feast_SpellScript : public SpellScript
+        class spell_item_fish_feast_SpellScript : public SpellScript
         {
-            PrepareSpellScript(spell_item_feast_SpellScript);
+            PrepareSpellScript(spell_item_fish_feast_SpellScript);
 
             bool Load()
             {
@@ -778,43 +751,18 @@ class spell_item_feast : public SpellScriptLoader
             void HandleScriptEffect(SpellEffIndex effIndex)
             {
                 PreventHitDefaultEffect(effIndex);
-
-                Unit* caster = GetCaster();
-                if (Player* player = caster->ToPlayer())
-                {
-                    LocaleConstant loc_idx = player->GetSession()->GetSessionDbLocaleIndex();
-
-                    switch(GetSpellInfo()->Id)
-                    {
-                        case SPELL_GREAT_FEAST:
-                            if (BroadcastText const* bct = sObjectMgr->GetBroadcastText(GREAT_FEAST_BROADCAST_TEXT_ID_PREPARE))
-                                player->MonsterTextEmote(bct->GetText(loc_idx, player->getGender()).c_str(), player, false);
-                            break;
-                        case SPELL_FISH_FEAST:
-                            if (BroadcastText const* bct = sObjectMgr->GetBroadcastText(FISH_FEAST_BROADCAST_TEXT_ID_PREPARE))
-                                player->MonsterTextEmote(bct->GetText(loc_idx, player->getGender()).c_str(), player, false);
-                            break;
-                        case SPELL_SMALL_FEAST:
-                            if (BroadcastText const* bct = sObjectMgr->GetBroadcastText(SMALL_FEAST_BROADCAST_TEXT_ID_PREPARE))
-                                player->MonsterTextEmote(bct->GetText(loc_idx, player->getGender()).c_str(), player, false);
-                            break;
-                        case SPELL_GIGANTIC_FEAST:
-                            if (BroadcastText const* bct = sObjectMgr->GetBroadcastText(GIGANTIC_FEAST_BROADCAST_TEXT_ID_PREPARE))
-                                player->MonsterTextEmote(bct->GetText(loc_idx, player->getGender()).c_str(), player, false);
-                            break;
-                    }
-                }
+                GetCaster()->ToPlayer()->TextEmote("prepares a Fish Feast!");
             }
 
             void Register()
             {
-                OnEffectHitTarget += SpellEffectFn(spell_item_feast_SpellScript::HandleScriptEffect, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
+                OnEffectHitTarget += SpellEffectFn(spell_item_fish_feast_SpellScript::HandleScriptEffect, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
             }
         };
 
         SpellScript* GetSpellScript() const
         {
-            return new spell_item_feast_SpellScript();
+            return new spell_item_fish_feast_SpellScript();
         }
 };
 
@@ -1107,6 +1055,15 @@ class spell_item_oracle_ablutions : public SpellScriptLoader
                         break;
                     default:
                         break;
+                }
+                if (Player* player = caster->ToPlayer())
+                {
+                    std::string name = player->GetName();
+                    player->TextEmote("casually flips his Titanium Seal of Dalaran");
+                    if (urand(0,1))
+                        player->TextEmote("finds the coin face down for tails!");
+                    else
+                        player->TextEmote("catches the coin heads up!");
                 }
             }
 
@@ -4030,7 +3987,7 @@ void AddSC_item_spell_scripts()
     new spell_item_crazy_alchemists_potion();
     new spell_item_skull_of_impeding_doom();
     new spell_item_carrot_on_a_stick();
-    new spell_item_feast();
+    new spell_item_fish_feast();
     new spell_item_gnomish_universal_remote();
     new spell_item_strong_anti_venom();
     new spell_item_gnomish_shrink_ray();

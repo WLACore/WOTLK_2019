@@ -1,5 +1,4 @@
-#
-# Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU AGPL3 v3 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-AGPL3
+# Copyright (C)
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -31,7 +30,22 @@ endif()
 # Group sources
 GroupSources(${CMAKE_CURRENT_SOURCE_DIR})
 
-add_library(authserver-interface INTERFACE)
+add_executable(authserver
+  ${PRIVATE_SOURCES}
+)
+
+add_dependencies(authserver revision.h)
+
+if( NOT WIN32 )
+  set_target_properties(authserver PROPERTIES
+    COMPILE_DEFINITIONS _TRINITY_REALM_CONFIG="${CONF_DIR}/authserver.conf"
+  )
+endif()
+
+target_link_libraries(authserver
+  PUBLIC
+    common
+)
 
 CollectIncludeDirectories(
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -39,27 +53,9 @@ CollectIncludeDirectories(
   # Exclude
   ${CMAKE_CURRENT_SOURCE_DIR}/PrecompiledHeaders)
 
-target_include_directories(authserver-interface
-  INTERFACE
-    ${PUBLIC_INCLUDES})
-
-add_executable(authserver
-  ${PRIVATE_SOURCES})
-
-add_dependencies(authserver revision.h)
-
-if(NOT WIN32)
-  set_target_properties(authserver PROPERTIES
-    COMPILE_DEFINITIONS _TRINITY_REALM_CONFIG="${CONF_DIR}/authserver.conf")
-endif()
-
-target_link_libraries(authserver
-  PRIVATE
-    authserver-interface
-  PUBLIC
-    common)
-
 target_include_directories(authserver
+  PUBLIC
+    ${PUBLIC_INCLUDES}
   PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR})
 

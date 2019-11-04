@@ -51,11 +51,7 @@ class BattlegroundMap;
 class Transport;
 class StaticTransport;
 class MotionTransport;
-namespace Trinity
-{
-    struct ObjectUpdater;
-    struct LargeObjectUpdater;
-}
+namespace Trinity { struct ObjectUpdater; }
 
 struct ScriptAction
 {
@@ -296,11 +292,7 @@ class Map : public GridRefManager<NGridType>
         template<class T> bool AddToMap(T *, bool checkTransport = false);
         template<class T> void RemoveFromMap(T *, bool);
 
-        void VisitNearbyCellsOf(WorldObject* obj, TypeContainerVisitor<Trinity::ObjectUpdater, GridTypeMapContainer> &gridVisitor,
-            TypeContainerVisitor<Trinity::ObjectUpdater, WorldTypeMapContainer> &worldVisitor);
-        void VisitNearbyCellsOfPlayer(Player* player, TypeContainerVisitor<Trinity::ObjectUpdater, GridTypeMapContainer> &gridVisitor,
-            TypeContainerVisitor<Trinity::ObjectUpdater, WorldTypeMapContainer> &worldVisitor,
-            TypeContainerVisitor<Trinity::LargeObjectUpdater, GridTypeMapContainer> &largeObjectVisitor);
+        void VisitNearbyCellsOf(WorldObject* obj, TypeContainerVisitor<Trinity::ObjectUpdater, GridTypeMapContainer> &gridVisitor, TypeContainerVisitor<Trinity::ObjectUpdater, WorldTypeMapContainer> &worldVisitor);
         virtual void Update(const uint32, const uint32, bool thread = true);
 
         float GetVisibilityRange() const { return m_VisibleDistance; }
@@ -327,7 +319,6 @@ class Map : public GridRefManager<NGridType>
         }
 
         void LoadGrid(float x, float y);
-        void LoadAllCells();
         bool UnloadGrid(NGridType& ngrid);
         virtual void UnloadAll();
 

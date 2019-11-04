@@ -581,24 +581,6 @@ void WorldSession::SendStablePetCallback(PreparedQueryResult result, uint64 guid
         data << uint8(1);                                   // 1 = current, 2/3 = in stable (any from 4, 5, ... create problems with proper show)
         ++num;
     }
-    else if (_player->IsPetDismissed() || _player->GetTemporaryUnsummonedPetNumber())
-    {
-        PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHAR_PET_BY_ENTRY_AND_SLOT);
-        stmt->setUInt32(0, _player->GetGUIDLow());
-        stmt->setUInt8(1, uint8(_player->GetTemporaryUnsummonedPetNumber() ? PET_SAVE_AS_CURRENT : PET_SAVE_NOT_IN_SLOT));
-        
-        if (PreparedQueryResult _result = CharacterDatabase.AsyncQuery(stmt))
-        {
-            Field* fields = _result->Fetch();
-
-            data << uint32(fields[0].GetUInt32());        // id
-            data << uint32(fields[1].GetUInt32());        // entry
-            data << uint32(fields[4].GetUInt16());        // level
-            data << fields[8].GetString();                // petname 
-            data << uint8(1);
-            ++num;
-        }
-    }
 
     if (result)
     {
@@ -657,22 +639,10 @@ void WorldSession::HandleStablePet(WorldPacket & recvData)
     Pet* pet = _player->GetPet();
 
     // can't place in stable dead pet
-    if (pet)
+    if (!pet || !pet->IsAlive() || pet->getPetType() != HUNTER_PET)
     {
-        if (!pet->IsAlive() || pet->getPetType() != HUNTER_PET)
-        {
-            SendStableResult(STABLE_ERR_STABLE);
-            return;
-        }
-    }
-    else
-    {
-        SpellCastResult loadResult = Pet::TryLoadFromDB(_player, _player->GetTemporaryUnsummonedPetNumber() != 0, HUNTER_PET);
-        if (loadResult != SPELL_CAST_OK)
-        {
-            SendStableResult(STABLE_ERR_STABLE);
-            return;
-        }
+        SendStableResult(STABLE_ERR_STABLE);
+        return;
     }
 
     PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_PET_SLOTS);
@@ -711,27 +681,8 @@ void WorldSession::HandleStablePetCallback(PreparedQueryResult result)
     WorldPacket data(SMSG_STABLE_RESULT, 1);
     if (freeSlot > 0 && freeSlot <= GetPlayer()->m_stableSlots)
     {
-        if (_player->GetPetGUID())
-        {
-            _player->RemovePet(_player->GetPet(), PetSaveMode(freeSlot));
-            SendStableResult(STABLE_SUCCESS_STABLE);
-            return;
-        }
-
-        // change pet slot directly in database
-        SQLTransaction trans = CharacterDatabase.BeginTransaction();
-
-        PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UDP_CHAR_PET_SLOT_BY_SLOT);
-        stmt->setUInt8(0, freeSlot);
-        stmt->setUInt32(1, _player->GetGUIDLow());
-        stmt->setUInt8(2, uint8(_player->GetTemporaryUnsummonedPetNumber() ? PET_SAVE_AS_CURRENT : PET_SAVE_NOT_IN_SLOT));
-        trans->Append(stmt);
-
-        CharacterDatabase.CommitTransaction(trans);
-        
-        _player->SetTemporaryUnsummonedPetNumber(0);
+        _player->RemovePet(_player->GetPet(), PetSaveMode(freeSlot));
         SendStableResult(STABLE_SUCCESS_STABLE);
-        return;
     }
     else
         SendStableResult(STABLE_ERR_STABLE);
@@ -774,12 +725,10 @@ void WorldSession::HandleUnstablePetCallback(PreparedQueryResult result, uint32 
         return;
 
     uint32 petEntry = 0;
-    uint32 slot = 0;
     if (result)
     {
         Field* fields = result->Fetch();
         petEntry = fields[0].GetUInt32();
-        slot = fields[1].GetUInt32();
     }
 
     if (!petEntry)
@@ -808,30 +757,7 @@ void WorldSession::HandleUnstablePetCallback(PreparedQueryResult result, uint32 
 
     // delete dead pet
     if (pet)
-    {
         _player->RemovePet(pet, PET_SAVE_AS_DELETED);
-    }
-    else if (_player->IsPetDismissed() || _player->GetTemporaryUnsummonedPetNumber())
-    {
-        // try to find if pet is actually temporary unsummoned and alive
-        SpellCastResult loadResult = Pet::TryLoadFromDB(_player, _player->GetTemporaryUnsummonedPetNumber() != 0, HUNTER_PET);
-        if (loadResult != SPELL_CAST_OK)
-        {
-            SendStableResult(STABLE_ERR_STABLE);
-            return;
-        }
-        // change pet slot directly in database
-        SQLTransaction trans = CharacterDatabase.BeginTransaction();
-
-        PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UDP_CHAR_PET_SLOT_BY_SLOT);
-        stmt->setUInt8(0, slot);
-        stmt->setUInt32(1, _player->GetGUIDLow());
-        stmt->setUInt8(2, uint8(_player->GetTemporaryUnsummonedPetNumber() ? PET_SAVE_AS_CURRENT : PET_SAVE_NOT_IN_SLOT));
-        trans->Append(stmt);
-
-        CharacterDatabase.CommitTransaction(trans);
-        _player->SetTemporaryUnsummonedPetNumber(0);
-    }
 
     if (!Pet::LoadPetFromDB(_player, PET_LOAD_HANDLE_UNSTABLE_CALLBACK, petEntry, petId))
     {
@@ -904,26 +830,14 @@ void WorldSession::HandleStableSwapPet(WorldPacket & recvData)
 
     Pet* pet = _player->GetPet();
 
-    if (pet)
+    if (!pet || pet->getPetType() != HUNTER_PET)
     {
-        if (pet->getPetType() != HUNTER_PET)
-        {
-            SendStableResult(STABLE_ERR_STABLE);
-            return;
-        }
-    }
-    else if (_player->IsPetDismissed() || _player->GetTemporaryUnsummonedPetNumber())
-    {
-        // try to find if pet is actually temporary unsummoned and alive
-        SpellCastResult loadResult = Pet::TryLoadFromDB(_player, _player->GetTemporaryUnsummonedPetNumber() != 0, HUNTER_PET);
-        if (loadResult != SPELL_CAST_OK)
-        {
-            SendStableResult(STABLE_ERR_STABLE);
-            return;
-        }
+        SendStableResult(STABLE_ERR_STABLE);
+        return;
     }
 
     // Find swapped pet slot in stable
+
     PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_PET_SLOT_BY_ID);
 
     stmt->setUInt32(0, _player->GetGUIDLow());
@@ -967,24 +881,15 @@ void WorldSession::HandleStableSwapPetCallback(PreparedQueryResult result, uint3
     }
 
     Pet* pet = _player->GetPet();
-    
-    // move alive pet to slot or delete dead pet
-    if (pet)
-        _player->RemovePet(pet, pet->IsAlive() ? PetSaveMode(slot) : PET_SAVE_AS_DELETED);
-    else if (_player->IsPetDismissed() || _player->GetTemporaryUnsummonedPetNumber())
+    // The player's pet could have been removed during the delay of the DB callback
+    if (!pet)
     {
-        // change pet slot directly in database
-        SQLTransaction trans = CharacterDatabase.BeginTransaction();
-
-        PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UDP_CHAR_PET_SLOT_BY_SLOT);
-        stmt->setUInt8(0, slot);
-        stmt->setUInt32(1, _player->GetGUIDLow());
-        stmt->setUInt8(2, uint8(_player->GetTemporaryUnsummonedPetNumber() ? PET_SAVE_AS_CURRENT : PET_SAVE_NOT_IN_SLOT));
-        trans->Append(stmt);
-
-        CharacterDatabase.CommitTransaction(trans);
-        _player->SetTemporaryUnsummonedPetNumber(0);
+        SendStableResult(STABLE_ERR_STABLE);
+        return;
     }
+
+    // move alive pet to slot or delete dead pet
+    _player->RemovePet(pet, pet->IsAlive() ? PetSaveMode(slot) : PET_SAVE_AS_DELETED);
 
     // summon unstabled pet
     if (!Pet::LoadPetFromDB(_player, PET_LOAD_HANDLE_UNSTABLE_CALLBACK, petEntry, petId))

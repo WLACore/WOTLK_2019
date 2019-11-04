@@ -29,8 +29,6 @@ target_include_directories(mpq
     ${CMAKE_SOURCE_DIR}/deps/bzip2)
 
 target_link_libraries(mpq
-  PRIVATE
-    acore-dependency-interface
   PUBLIC
     zlib
     bzip2)

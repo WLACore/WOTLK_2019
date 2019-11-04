@@ -92,7 +92,7 @@ WorldObject::~WorldObject()
         if (GetTypeId() == TYPEID_CORPSE)
         {
             sLog->outCrash("Object::~Object Corpse guid=" UI64FMTD ", type=%d, entry=%u deleted but still in map!!", GetGUID(), ((Corpse*)this)->GetType(), GetEntry());
-            ABORT();
+            ASSERT(false);
         }
         ResetMap();
     }
@@ -105,14 +105,14 @@ Object::~Object()
         sLog->outCrash("Object::~Object - guid=" UI64FMTD ", typeid=%d, entry=%u deleted but still in world!!", GetGUID(), GetTypeId(), GetEntry());
         if (isType(TYPEMASK_ITEM))
             sLog->outCrash("Item slot %u", ((Item*)this)->GetSlot());
-        ABORT();
+        ASSERT(false);
         RemoveFromWorld();
     }
 
     if (m_objectUpdated)
     {
         sLog->outCrash("Object::~Object - guid=" UI64FMTD ", typeid=%d, entry=%u deleted but still in update list!!", GetGUID(), GetTypeId(), GetEntry());
-        ABORT();
+        ASSERT(false);
         sObjectAccessor->RemoveUpdateObject(this);
     }
 
@@ -1522,8 +1522,6 @@ float WorldObject::GetVisibilityRange() const
 { 
     if (isActiveObject() && !ToPlayer())
         return MAX_VISIBILITY_DISTANCE;
-    else if (IsVisibilityOverridden() && GetTypeId() == TYPEID_UNIT)
-        return MAX_VISIBILITY_DISTANCE;
     else if (GetTypeId() == TYPEID_GAMEOBJECT)
     {
         if (IsInWintergrasp())
@@ -1546,8 +1544,6 @@ float WorldObject::GetSightRange(const WorldObject* target) const
             if (target)
             {
                 if (target->isActiveObject() && !target->ToPlayer())
-                    return MAX_VISIBILITY_DISTANCE;
-                else if (target->IsVisibilityOverridden() && target->GetTypeId() == TYPEID_UNIT)
                     return MAX_VISIBILITY_DISTANCE;
                 else if (target->GetTypeId() == TYPEID_GAMEOBJECT)
                 {
@@ -2063,7 +2059,7 @@ void WorldObject::SetMap(Map* map)
     if (m_currMap)
     {
         sLog->outCrash("WorldObject::SetMap: obj %u new map %u %u, old map %u %u", (uint32)GetTypeId(), map->GetId(), map->GetInstanceId(), m_currMap->GetId(), m_currMap->GetInstanceId());
-        ABORT();
+        ASSERT(false);
     }
     m_currMap = map;
     m_mapId = map->GetId();

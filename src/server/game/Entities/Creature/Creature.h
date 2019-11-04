@@ -10,7 +10,7 @@
 #include "Common.h"
 #include "Unit.h"
 #include "UpdateMask.h"
-#include "ItemTemplate.h"
+#include "ItemPrototype.h"
 #include "LootMgr.h"
 #include "DatabaseEnv.h"
 #include "Cell.h"
@@ -149,11 +149,6 @@ struct CreatureTemplate
             return SKILL_SKINNING;                          // normal case
     }
 
-    bool IsExotic() const
-    {
-        return (type_flags & CREATURE_TYPE_FLAG_EXOTIC_PET) != 0;
-    }
-    
     bool IsTameable(bool exotic) const
     {
         if (type != CREATURE_TYPE_BEAST || family == 0 || (type_flags & CREATURE_TYPE_FLAG_TAMEABLE_PET) == 0)
@@ -234,7 +229,7 @@ struct GossipMenuItemsLocale
 
 struct PointOfInterestLocale
 {
-    StringVector Name;
+    StringVector IconName;
 };
 
 #define MAX_EQUIPMENT_ITEMS 3
@@ -325,7 +320,6 @@ struct CreatureAddon
     uint32 bytes1;
     uint32 bytes2;
     uint32 emote;
-    bool isLarge;
     std::vector<uint32> auras;
 };
 

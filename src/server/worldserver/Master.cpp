@@ -99,7 +99,7 @@ public:
             else if (getMSTimeDiff(_lastChange, curtime) > _delayTime)
             {
                 sLog->outString("World Thread hangs, kicking out server!");
-                ABORT();
+                ASSERT(false);
             }
 
             ACORE::Thread::Sleep(1000);

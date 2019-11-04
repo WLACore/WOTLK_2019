@@ -35,8 +35,6 @@ target_include_directories(Detour
 GroupSources(${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(Detour
-  PRIVATE
-    acore-dependency-interface
   PUBLIC
     zlib)
 
